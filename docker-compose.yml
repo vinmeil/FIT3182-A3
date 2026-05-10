@@ -1,0 +1,53 @@
+version: '3.8'
+
+networks:
+  fit3182-net:
+    driver: bridge
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
+    networks:
+      - fit3182-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_PORT}:${KAFKA_PORT}"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - fit3182-net
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "${MONGO_PORT}:${MONGO_PORT}"
+    volumes:
+      - ${MONGO_DATA}:/data/db
+    networks:
+      - fit3182-net
+
+  pyspark:
+    image: fit3182/pyspark
+    ports:
+      - "${JUPYTER_PORT}:8888"
+      - "${SPARKUI_PORT}:4040"
+    volumes:
+      - ${PROJECT_ROOT}:/home/student
+    networks:
+      - fit3182-net
+    command: jupyter notebook --ip=0.0.0.0 --no-browser --allow-root
