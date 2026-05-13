@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-csv_path = Path("..") / "data" / "camera_event_A.csv"
-
 # Load all datasets
 vehicle_df = pd.read_csv(Path("..") / "data" / "vehicle.csv")
 camera_df = pd.read_csv(Path("..") / "data" / "camera.csv")
