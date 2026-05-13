@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from pathlib import Path
 import pandas as pd
 
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient("mongodb://localhost:27017/") # net stop mongodb if local is running
 db = client["fit3182_a2"]
 
 data_path = (Path(__file__).resolve().parent / ".." / "data").resolve()
