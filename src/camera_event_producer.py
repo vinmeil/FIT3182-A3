@@ -78,7 +78,7 @@ class CameraEventProducer:
             "timestamp": row["timestamp"].isoformat(),
             "speed_reading": float(row["speed_reading"]),
             "producer_id": self.camera_id,  # Metadata for traceability
-            "schema_version": "1.0",  # HD: Future-proofing
+            "schema_version": "1.0",
         }
 
     def publish_batches(self):
