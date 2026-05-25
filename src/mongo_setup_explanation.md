@@ -17,7 +17,7 @@ Each vehicle document will store:
 }
 ```
 
-This collection itself is required since we need to store the vehicle ownership and registration data, which is static and updated infrequently compared to the traffic events frmo our cameras which require frequent updates.
+This collection itself is required since we need to store the vehicle ownership and registration data, which is static and updated infrequently compared to the traffic events from our cameras which require frequent updates.
 
 If we were to embed all the vehicle data into every violation document, there would be a high number of duplication because the same owner information can be repeatedly stored across many violations. To combat this, we will only store the car_plate inside our violation collection so that we can simply conduct a lookup in our vehicle collection when we need information regarding it.
 
@@ -26,7 +26,7 @@ So, the main idea behind separating this vehicle collection is to:
 2. improve consistency
 3. enabling independent updates
 
-For example, if we find that a vehicle is acquired by a new owner or requires a registration update, we siply need to update this information in the vehicles collection and not in the violations collection, which reduces the number of operations we need to do.
+For example, if we find that a vehicle is acquired by a new owner or requires a registration update, we simply need to update this information in the vehicles collection and not in the violations collection, which reduces the number of operations we need to do.
 
 To further improve this collection, we also use indexing on the car_plate attribute, namely:
 ```py 
@@ -167,3 +167,15 @@ The `violations` collection itself also uses embedding over referencing to bette
 2. Efficient reads
 3. Minimal join cost
 4. Streaming correctness
+
+To better visualize this, refer to the table below:
+### Collection Relationship Trade-off Analysis
+
+| Aspect | Chosen Approach (Reference + Daily Embedding) | Alternative: Pure Referencing | Why This Wins for AWAS |
+|---|---|---|---|
+| **Write Pattern** | High-throughput `$addToSet` into bounded daily documents | High insert volume creates fragmented collections and slower aggregation pipelines | Prevents state explosion during streaming bursts while keeping daily writes atomic and efficient |
+| **Read Pattern** | Single-document lookup by `(car_plate, date)` retrieves all daily violations instantly | Requires `$lookup` or application-side aggregation across many individual violation records | Optimises for enforcement dashboard queries that expect consolidated daily summaries per vehicle |
+| **Duplication vs Join Cost** | Minimal duplication; metadata is only joined on-demand via `car_plate`/`camera_id` | Zero duplication, but high real-time join/aggregation cost during reporting | Trade-off favours bounded duplication over expensive cross-collection joins in a high-velocity stream |
+| **Consistency Requirements** | Eventual consistency acceptable; foreign-key references remain valid even if metadata changes | Strong consistency guaranteed via strict lookups, but at the cost of read latency | Guarantees violation records always reflect current camera rules without requiring costly cascading updates across historical records |
+
+**Conclusion:** The hybrid model (referencing static `vehicles`/`cameras` while embedding daily violation arrays) aligns with AWAS operational patterns. It minimises write contention during high-velocity ingestion, avoids unbounded document growth, and ensures that enforcement queries remain fast and consistent without expensive runtime joins.
