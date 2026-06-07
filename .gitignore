@@ -1,3 +1,5 @@
 mongodb/
 outputs/
 joined.csv
+.env
+fit3182-key.pem
