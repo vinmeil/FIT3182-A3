@@ -1,0 +1,13 @@
+FROM eclipse-temurin:11-jre
+
+ENV SPARK_VERSION=3.3.0
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$PATH:$SPARK_HOME/bin
+
+RUN apt-get update && apt-get install -y wget && \
+    wget -q https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz && \
+    tar xzf spark-${SPARK_VERSION}-bin-hadoop3.tgz && \
+    mv spark-${SPARK_VERSION}-bin-hadoop3 ${SPARK_HOME} && \
+    rm spark-${SPARK_VERSION}-bin-hadoop3.tgz
+
+WORKDIR $SPARK_HOME
