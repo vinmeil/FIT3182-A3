@@ -6,10 +6,10 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     environment:
-      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+      ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
+      - "2181:2181"
     networks:
       - fit3182-net
 
@@ -18,11 +18,11 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "${KAFKA_PORT}:${KAFKA_PORT}"
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-1:9092
+      KAFKA_ZOOKEEPER_CONNECT: 15.135.158.73:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://15.135.158.73:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
@@ -33,115 +33,43 @@ services:
     networks:
       - fit3182-net
 
-  kafka-broker-2:
-    image: confluentinc/cp-kafka:7.5.0
-    depends_on:
-      - zookeeper
-    ports:
-      - "9093:9093"
-    environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-2:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-    networks:
-      - fit3182-net
-
-  kafka-broker-3:
-    image: confluentinc/cp-kafka:7.5.0
-    depends_on:
-      - zookeeper
-    ports:
-      - "9094:9094"
-    environment:
-      KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-3:9094
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-    networks:
-      - fit3182-net
-
   mongodb:
     image: mongo:7
     ports:
-      - "${MONGO_PORT}:${MONGO_PORT}"
+      - "27017:27017"
     volumes:
-      - ${MONGO_DATA}:/data/db
+      - ./data/mongo:/data/db
     networks:
       - fit3182-net
+
   spark-master:
-    # image: apache/spark:3.5.0
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
     user: root
     environment:
       SPARK_NO_DAEMONIZE: "true"
     ports:
       - "8080:8080"
-      - "${SPARKUI_PORT}:4040"
       - "7077:7077"
+      - "4040:4040"
     volumes:
-      - ${PROJECT_ROOT}:/home/student 
+      - ./:/home/student
     networks:
       - fit3182-net
-    build:
-      context: .
-      dockerfile: Dockerfile.spark
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
-
-  spark-worker-1:
-    # image: apache/spark:3.5.0
-    user: root
-    environment:
-      SPARK_NO_DAEMONIZE: "true"
-    depends_on:
-      - spark-master
-    volumes:
-      - ${PROJECT_ROOT}:/home/student 
-    networks:
-      - fit3182-net
-    build:
-      context: .
-      dockerfile: Dockerfile.spark
-    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
-
-  spark-worker-2:
-    # image: apache/spark:3.5.0
-    user: root
-    environment:
-      SPARK_NO_DAEMONIZE: "true"
-    depends_on:
-      - spark-master
-    volumes:
-      - ${PROJECT_ROOT}:/home/student 
-    networks:
-      - fit3182-net
-    build:
-      context: .
-      dockerfile: Dockerfile.spark
-    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
 
   pyspark-notebook:
     image: fit3182/pyspark
     ports:
-      - "${JUPYTER_PORT}:8888"
+      - "8888:8888"
     volumes:
-      - ${PROJECT_ROOT}:/home/student
+      - ./:/home/student
     environment:
-      SPARK_MASTER: spark://spark-master:7077
+      SPARK_MASTER: spark://15.135.158.73:7077
     depends_on:
       - spark-master
       - kafka-broker-1
-      - kafka-broker-2
-      - kafka-broker-3
       - mongodb
     networks:
       - fit3182-net
