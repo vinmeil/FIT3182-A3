@@ -1,0 +1,34 @@
+networks:
+  fit3182-net:
+    driver: bridge
+
+services:
+  kafka-broker-2:
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 172.31.21.188:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://172.31.27.144:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - fit3182-net
+
+  spark-worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    user: root
+    network_mode: "host"
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_LOCAL_IP: "172.31.27.144"
+    volumes:
+      - ./:/home/student
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "--host", "172.31.27.144", "spark://172.31.21.188:7077"]

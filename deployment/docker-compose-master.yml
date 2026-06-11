@@ -49,6 +49,8 @@ services:
     user: root
     environment:
       SPARK_NO_DAEMONIZE: "true"
+      SPARK_MASTER_HOST: "172.31.21.188"
+      SPARK_LOCAL_IP: "172.31.21.188"
     ports:
       - "8080:8080"
       - "7077:7077"
